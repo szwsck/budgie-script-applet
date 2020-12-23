@@ -1,0 +1,7 @@
+[Plugin]
+Loader=python3
+Module=script
+Name=Script
+Description=Prints output of custom script
+Authors=Szymon Wysocki
+Icon=code-context-symbolic
