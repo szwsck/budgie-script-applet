@@ -22,7 +22,6 @@ class ScriptSettings:
     def __init__(self, uuid, on_changed):
         self._uuid = uuid
         self._callback = on_changed
-        self._create_ui()
 
     # =====================================
     # Saved settings manipulation
@@ -63,12 +62,7 @@ class ScriptSettings:
     # =====================================
     # UI methods
 
-    def get_ui(self):
-        return self.settings_ui
-
-    def _create_ui(self):
-
-        # This should be done using glade, @TODO
+    def create_ui(self):
 
         current = self.load()
 
@@ -127,14 +121,16 @@ class ScriptSettings:
         save_button = Gtk.Button.new_with_label("Save")
         save_button.connect("clicked", self.save)
 
-        self.settings_ui = Gtk.Box(
+        settings_ui = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=10
         )
-        self.settings_ui.add(option1)
-        self.settings_ui.add(option2)
-        self.settings_ui.add(save_button)
+        settings_ui.add(option1)
+        settings_ui.add(option2)
+        settings_ui.add(save_button)
 
         option1.show_all()
         option2.show_all()
-        self.settings_ui.show_all()
+        settings_ui.show_all()
+
+        return settings_ui
