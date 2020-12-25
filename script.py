@@ -1,6 +1,7 @@
 import gi.repository
 import subprocess
-from settings import ScriptSettings
+from settings_ui import SettingsBox
+import settings
 
 gi.require_version("Budgie", "1.0")
 gi.require_version("Gtk", "3.0")
@@ -17,7 +18,6 @@ class BudgieScript(GObject.GObject, Budgie.Plugin):
 
 
 class BudgieScriptApplet(Budgie.Applet):
-
     def __init__(self, uuid):
         Budgie.Applet.__init__(self)
 
@@ -29,8 +29,6 @@ class BudgieScriptApplet(Budgie.Applet):
         self.button.set_relief(Gtk.ReliefStyle.NONE)
         self.add(self.button)
         self.show_all()
-
-        self.settings = ScriptSettings(uuid, on_changed=self.schedule)
 
         # schedule execution
         self.schedule()
@@ -45,13 +43,13 @@ class BudgieScriptApplet(Budgie.Applet):
         self.update()
 
         # schedule to run every <interval> seconds
-        interval = self.settings.load()["interval"]
+        interval = settings.load(self.uuid)["interval"]
         self.job_id = GObject.timeout_add_seconds(interval, self.update)
 
     def update(self):
 
         # load command for this script from settings
-        command = self.settings.load()["command"]
+        command = settings.load(self.uuid)["command"]
         stdout = self.run(command)
 
         self.button.set_label(stdout)
@@ -70,4 +68,18 @@ class BudgieScriptApplet(Budgie.Applet):
         return True
 
     def do_get_settings_ui(self):
-        return self.settings.create_ui()
+        initial_values = settings.load(self.uuid)
+        return SettingsBox(initial_values, on_changed=self.on_settings_changed)
+
+    def on_settings_changed(self, new_settings):
+        settings.save(self.uuid, new_settings)
+        self.schedule()
+
+
+if __name__ == "__main__":
+    applet = BudgieScriptApplet("test-uuid")
+    win = Gtk.Window()
+    win.connect("destroy", Gtk.main_quit)
+    win.add(applet)
+    win.show_all()
+    Gtk.main()
