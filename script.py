@@ -30,7 +30,7 @@ class BudgieScriptApplet(Budgie.Applet):
         self.add(self.button)
         self.show_all()
 
-        self.settings = ScriptSettings(uuid, onshanged=self.schedule)
+        self.settings = ScriptSettings(uuid, on_changed=self.schedule)
 
         # schedule execution
         self.schedule()
