@@ -25,8 +25,11 @@ class BudgieScriptApplet(Budgie.Applet):
         self.job_id = None
 
         # widget UI
-        self.button = Gtk.Button.new()
+        self.button = Gtk.Button.new_with_label("")
         self.button.set_relief(Gtk.ReliefStyle.NONE)
+        self.button.get_children()[0].set_padding(0, 0)
+        self.button.get_style_context().add_class("budgie-script")
+        self.button.set_name(f"{self.uuid[:8]}")
         self.add(self.button)
         self.show_all()
 
@@ -69,7 +72,7 @@ class BudgieScriptApplet(Budgie.Applet):
 
     def do_get_settings_ui(self):
         initial_values = settings.load(self.uuid)
-        return SettingsBox(initial_values, on_changed=self.on_settings_changed)
+        return SettingsBox(self.uuid, initial_values, self.on_settings_changed)
 
     def on_settings_changed(self, new_settings):
         settings.save(self.uuid, new_settings)

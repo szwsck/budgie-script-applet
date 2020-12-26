@@ -23,6 +23,20 @@ After you add the widget to the panel, you should configure it inside Budgie Des
 
 For simple monochrome icons, you can use an icon font such as [MaterialDesign-Font](https://github.com/Templarian/MaterialDesign-Font). Their size almost matches the system action icon size, so they actually fit very well into other panel icons.
 
+## Theming
+You can modify the look of the applet through CSS attributes in `~/.config/gtk-3.0/gtk.css`. All widgets share the class `.budgie-script` and each script has its unique ID that you can find in the settings.
+
+Some examples:
+```css
+/* change font of single widget's label */
+.budgie-script#41012c76 label {
+	font-family: Fantasque Sans Mono;
+}
+/* make all widgets from the right side of panel highlight on mouse hover */
+.end-region .budgie-script:hover{
+    background-color: rgba(255,255,255,0.3)
+}
+```
 ## Ideas
  - Display next event from Google Calendar. See [i3-agenda](https://github.com/rosenpin/i3-agenda)
 

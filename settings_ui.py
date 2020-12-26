@@ -6,12 +6,19 @@ from gi.repository import Gtk  # noqa: E402
 
 class SettingsBox(Gtk.Box):
 
-    def __init__(self, initial, on_changed):
+    def __init__(self, uuid, initial, on_changed):
         super().__init__(spacing=10,
-                         margin_top=10,
                          orientation=Gtk.Orientation.VERTICAL)
 
         self._on_changed = on_changed
+
+        # id
+        id_label = Gtk.Label(
+            label=f"CSS Selector: .budgie-script#{uuid[:8]}",
+            hexpand=True, halign=Gtk.Align.START,
+            selectable=True)
+        id_label.set_use_markup = True
+        self.add(id_label)
 
         # command
         command_line1 = Gtk.Label(label="Command",
@@ -63,6 +70,7 @@ class SettingsBox(Gtk.Box):
 
 if __name__ == "__main__":
     settings = SettingsBox(
+        "testid",
         {"command": "echo testing", "interval": 60},
         lambda x: print(x))
     win = Gtk.Window()
