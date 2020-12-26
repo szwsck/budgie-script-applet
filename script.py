@@ -5,7 +5,7 @@ import settings
 
 gi.require_version("Budgie", "1.0")
 gi.require_version("Gtk", "3.0")
-from gi.repository import Budgie, GObject, Gtk  # noqa: E402
+from gi.repository import Budgie, GObject, Gtk, GLib  # noqa: E402
 
 
 class BudgieScript(GObject.GObject, Budgie.Plugin):
@@ -27,7 +27,6 @@ class BudgieScriptApplet(Budgie.Applet):
         # widget UI
         self.button = Gtk.Button.new_with_label("")
         self.button.set_relief(Gtk.ReliefStyle.NONE)
-        self.button.get_children()[0].set_padding(0, 0)
         self.button.get_style_context().add_class("budgie-script")
         self.button.set_name(f"{self.uuid[:8]}")
         self.add(self.button)
@@ -47,7 +46,7 @@ class BudgieScriptApplet(Budgie.Applet):
 
         # schedule to run every <interval> seconds
         interval = settings.load(self.uuid)["interval"]
-        self.job_id = GObject.timeout_add_seconds(interval, self.update)
+        self.job_id = GLib.timeout_add_seconds(interval, self.update)
 
     def update(self):
 
