@@ -3,9 +3,41 @@ import subprocess
 from settings_ui import SettingsBox
 import settings
 
+
 gi.require_version("Budgie", "1.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import Budgie, GObject, Gtk, GLib  # noqa: E402
+
+
+def run(command):
+
+    # run given command with shell
+    output = subprocess.run(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        text=True
+    ).stdout.rstrip("\n")
+
+    return output
+
+
+def parse_output(output):
+    (label, _, props) = output.partition("\n")
+    if(props):
+        css = parse_css(f"label {{ {props} }}")
+    else:
+        css = None
+    return (label, css)
+
+
+def parse_css(css_str):
+    css_provider = Gtk.CssProvider()
+    css_provider.load_from_data(css_str.encode())
+    return css_provider
+
+
+STYLE_DEFAULT = parse_css("label{padding:0px 16px;}")
 
 
 class BudgieScript(GObject.GObject, Budgie.Plugin):
@@ -23,13 +55,22 @@ class BudgieScriptApplet(Budgie.Applet):
 
         self.uuid = uuid
         self.job_id = None
-
+        self.custom_css = None
         # widget UI
-        self.button = Gtk.Button.new_with_label("")
-        self.button.set_relief(Gtk.ReliefStyle.NONE)
-        self.button.get_style_context().add_class("budgie-script")
-        self.button.set_name(f"{self.uuid[:8]}")
-        self.add(self.button)
+
+        self.label = Gtk.Label(
+            label="",                   # content
+            name="self.uuid[:8]",       # css ID
+        )
+
+        self.label.set_name(f"{self.uuid[:8]}")
+        self.label.get_style_context().add_class("budgie-script")
+
+        # set default style with lower priority than custom css
+        self.label.get_style_context().add_provider(
+            STYLE_DEFAULT, Gtk.STYLE_PROVIDER_PRIORITY_USER - 1)
+
+        self.add(self.label)
         self.show_all()
 
         # schedule execution
@@ -52,19 +93,21 @@ class BudgieScriptApplet(Budgie.Applet):
 
         # load command for this script from settings
         command = settings.load(self.uuid)["command"]
-        stdout = self.run(command)
-
-        self.button.set_label(stdout)
+        # remove custom css if present
+        if(self.custom_css):
+            self.label.get_style_context().remove_provider(self.custom_css)
+        try:
+            (label_text, self.custom_css) = parse_output(run(command))
+        except GLib.Error as e:
+            print(e)
+            (label_text, self.custom_css) = parse_output(
+                "err: bad CSS\ncolor:red;")
+        if(self.custom_css):
+            self.label.get_style_context().add_provider(
+                self.custom_css,
+                Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        self.label.set_label(label_text)
         return True
-
-    def run(self, command):
-
-        # run given command with shell
-        result = subprocess.run(command,
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                text=True)
-        return result.stdout.strip()
 
     def do_supports_settings(self):
         return True
@@ -79,6 +122,8 @@ class BudgieScriptApplet(Budgie.Applet):
 
 
 if __name__ == "__main__":
+    test_command = "python ~/scripts/test.py"
+    settings.save("test-uuid", {"command": test_command, "interval": 1})
     applet = BudgieScriptApplet("test-uuid")
     win = Gtk.Window()
     win.connect("destroy", Gtk.main_quit)
