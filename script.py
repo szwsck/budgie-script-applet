@@ -9,14 +9,18 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Budgie, GObject, Gtk, GLib  # noqa: E402
 
 
-def parse_css(css_str):
+def parse_css_props(props):
+    props = map(lambda p: p if p.endswith(";") else f"{p};", props)
+    props_str = "".join(props)
+    css_str = f"label{{{props_str}}}"
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(css_str.encode())
     return css_provider
 
 
-default_css = parse_css("label{padding:0px 16px;}")
-error_css = parse_css("label{color:red;font-style:italic;padding:0px 16px;}")
+default_css = parse_css_props(["padding:0px 16px"])
+error_css = parse_css_props(
+    ["color:red", "font-style:italic", "padding:0px 16px"])
 
 
 def run_script(command):
@@ -29,9 +33,20 @@ def run_script(command):
             text=True
         )
 
-        (label, _, props) = stdout.partition("\n")
-        css = parse_css(f"label{{{props}}}") if props else None
-        return (label, css)
+        lines = stdout.splitlines()
+        label = lines[0] if len(lines) > 0 else ""
+        tooltip = None
+        props = lines[1:]
+        css_props = []
+
+        for prop in props:
+            if prop.startswith("tooltip:"):
+                tooltip = prop[8:].strip(" ;")
+            else:
+                css_props.append(prop)
+
+        css = parse_css_props(css_props)
+        return (label, tooltip, css)
 
     except subprocess.CalledProcessError as cmd_error:
 
@@ -108,7 +123,7 @@ class BudgieScriptApplet(Budgie.Applet):
         if(self.custom_css):
             self.label.get_style_context().remove_provider(self.custom_css)
 
-        (label_text, self.custom_css) = run_script(command)
+        (label_text, tooltip, self.custom_css) = run_script(command)
 
         # set new css if it was received
         if(self.custom_css):
@@ -117,7 +132,10 @@ class BudgieScriptApplet(Budgie.Applet):
                 Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
         self.label.set_label(label_text.replace("\n", ""))
-
+        if(tooltip):
+            self.label.set_tooltip_text(tooltip)
+        else:
+            self.label.set_has_tooltip(False)
         return True  # return True to keep looping
 
     def do_supports_settings(self):
