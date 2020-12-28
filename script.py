@@ -9,35 +9,46 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Budgie, GObject, Gtk, GLib  # noqa: E402
 
 
-def run(command):
-
-    # run given command with shell
-    output = subprocess.run(
-        command,
-        shell=True,
-        stdout=subprocess.PIPE,
-        text=True
-    ).stdout.rstrip("\n")
-
-    return output
-
-
-def parse_output(output):
-    (label, _, props) = output.partition("\n")
-    if(props):
-        css = parse_css(f"label {{ {props} }}")
-    else:
-        css = None
-    return (label, css)
-
-
 def parse_css(css_str):
     css_provider = Gtk.CssProvider()
     css_provider.load_from_data(css_str.encode())
     return css_provider
 
 
-STYLE_DEFAULT = parse_css("label{padding:0px 16px;}")
+default_css = parse_css("label{padding:0px 16px;}")
+error_css = parse_css("label{color:red;font-style:italic;padding:0px 16px;}")
+
+
+def run_script(command):
+
+    try:
+
+        stdout = subprocess.check_output(
+            args=["/bin/bash", "-c", command],
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        (label, _, props) = stdout.partition("\n")
+        css = parse_css(f"label{{{props}}}") if props else None
+        return (label, css)
+
+    except subprocess.CalledProcessError as cmd_error:
+
+        if cmd_error.stderr is not None and len(cmd_error.stderr) > 0:
+            label = cmd_error.stderr
+        elif cmd_error.stdout is not None and len(cmd_error.stdout) > 0:
+            label = cmd_error.stdout
+        else:
+            label = str(cmd_error)
+
+        return (label, error_css)
+
+    except GLib.Error as css_error:
+
+        return(css_error.message, error_css)
+
+    # TODO: add timeout
 
 
 class BudgieScript(GObject.GObject, Budgie.Plugin):
@@ -56,7 +67,6 @@ class BudgieScriptApplet(Budgie.Applet):
         self.uuid = uuid
         self.job_id = None
         self.custom_css = None
-        # widget UI
 
         self.label = Gtk.Label(
             label="",                   # content
@@ -68,7 +78,7 @@ class BudgieScriptApplet(Budgie.Applet):
 
         # set default style with lower priority than custom css
         self.label.get_style_context().add_provider(
-            STYLE_DEFAULT, Gtk.STYLE_PROVIDER_PRIORITY_USER - 1)
+            default_css, Gtk.STYLE_PROVIDER_PRIORITY_USER - 1)
 
         self.add(self.label)
         self.show_all()
@@ -93,21 +103,22 @@ class BudgieScriptApplet(Budgie.Applet):
 
         # load command for this script from settings
         command = settings.load(self.uuid)["command"]
+
         # remove custom css if present
         if(self.custom_css):
             self.label.get_style_context().remove_provider(self.custom_css)
-        try:
-            (label_text, self.custom_css) = parse_output(run(command))
-        except GLib.Error as e:
-            print(e)
-            (label_text, self.custom_css) = parse_output(
-                "err: bad CSS\ncolor:red;")
+
+        (label_text, self.custom_css) = run_script(command)
+
+        # set new css if it was received
         if(self.custom_css):
             self.label.get_style_context().add_provider(
                 self.custom_css,
                 Gtk.STYLE_PROVIDER_PRIORITY_USER)
-        self.label.set_label(label_text)
-        return True
+
+        self.label.set_label(label_text.replace("\n", ""))
+
+        return True  # return True to keep looping
 
     def do_supports_settings(self):
         return True
