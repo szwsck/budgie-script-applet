@@ -23,7 +23,11 @@ error_css = parse_css_props(
     ["color:red", "font-style:italic", "padding:0px 16px"])
 
 
-def run_script(command):
+def run_command(command):
+    subprocess.Popen(["/bin/bash", "-c", f"nohup {command} > /dev/null &"],)
+
+
+def run_content_script(command):
 
     try:
 
@@ -79,6 +83,8 @@ class BudgieScriptApplet(Budgie.Applet):
     def __init__(self, uuid):
         Budgie.Applet.__init__(self)
 
+        box = Gtk.EventBox()
+
         self.uuid = uuid
         self.job_id = None
         self.custom_css = None
@@ -95,7 +101,11 @@ class BudgieScriptApplet(Budgie.Applet):
         self.label.get_style_context().add_provider(
             default_css, Gtk.STYLE_PROVIDER_PRIORITY_USER - 1)
 
-        self.add(self.label)
+        box.add(self.label)
+        self.add(box)
+        # set command to run on click
+        box.connect("button-press-event", self.on_click)
+
         self.show_all()
 
         # schedule execution
@@ -114,16 +124,19 @@ class BudgieScriptApplet(Budgie.Applet):
         interval = settings.load(self.uuid)["interval"]
         self.job_id = GLib.timeout_add_seconds(interval, self.update)
 
-    def update(self):
+    def on_click(self, button, data):
+        onclick_command = settings.load(self.uuid)["onclick"]
+        run_command(onclick_command)
 
-        # load command for this script from settings
-        command = settings.load(self.uuid)["command"]
+    def update(self):
 
         # remove custom css if present
         if(self.custom_css):
             self.label.get_style_context().remove_provider(self.custom_css)
 
-        (label_text, tooltip, self.custom_css) = run_script(command)
+        # load command for this script from settings and run it
+        command = settings.load(self.uuid)["command"]
+        (label_text, tooltip, self.custom_css) = run_content_script(command)
 
         # set new css if it was received
         if(self.custom_css):
@@ -151,8 +164,11 @@ class BudgieScriptApplet(Budgie.Applet):
 
 
 if __name__ == "__main__":
-    test_command = "python ~/scripts/test.py"
-    settings.save("test-uuid", {"command": test_command, "interval": 1})
+    settings.save("test-uuid", {
+        "command": "echo testing",
+        "interval": 60,
+        "onclick": "xdg-open https://github.com/shymmq/budgie-script-applet"
+    })
     applet = BudgieScriptApplet("test-uuid")
     win = Gtk.Window()
     win.connect("destroy", Gtk.main_quit)
