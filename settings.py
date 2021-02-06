@@ -8,7 +8,11 @@ _directory = Path(_appdirs.user_config_dir)
 _filename = "budgie_script.json"
 _path = _directory / _filename
 
-_default = {"command": "echo script not set", "interval": 60}
+_default = {
+    "command": "echo script not set",
+    "interval": 60,
+    "onclick": "xdg-open https://github.com/shymmq/budgie-script-applet"
+}
 
 _directory.mkdir(parents=True, exist_ok=True)
 if not _path.exists():

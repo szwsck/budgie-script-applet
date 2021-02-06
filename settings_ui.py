@@ -21,7 +21,7 @@ class SettingsBox(Gtk.Box):
         self.add(id_label)
 
         # command
-        command_line1 = Gtk.Label(label="Command",
+        command_line1 = Gtk.Label(label="Content script",
                                   hexpand=True,
                                   halign=Gtk.Align.START,
                                   margin_top=10)
@@ -30,8 +30,18 @@ class SettingsBox(Gtk.Box):
         self.command_input = Gtk.Entry(text=initial["command"])
         self.add(self.command_input)
 
+        # command
+        onclick_line1 = Gtk.Label(label="Click action",
+                                  hexpand=True,
+                                  halign=Gtk.Align.START,
+                                  margin_top=10)
+        self.add(onclick_line1)
+
+        self.onclick_input = Gtk.Entry(text=initial["onclick"])
+        self.add(self.onclick_input)
+
         # interval
-        interval_line1 = Gtk.Label(label="Interval",
+        interval_line1 = Gtk.Label(label="Refresh interval",
                                    hexpand=True,
                                    halign=Gtk.Align.START,
                                    margin_top=10)
@@ -64,15 +74,21 @@ class SettingsBox(Gtk.Box):
         new = {
             "command": self.command_input.get_text(),
             "interval": self.interval_input.get_value_as_int(),
+            "onclick": self.onclick_input.get_text()
         }
         self._on_changed(new)
 
 
 if __name__ == "__main__":
     settings = SettingsBox(
-        "testid",
-        {"command": "echo testing", "interval": 60},
-        lambda x: print(x))
+        uuid="testid",
+        initial={
+            "command": "echo testing",
+            "interval": 60,
+            "onclick": "xdg-open google.com"
+        },
+        on_changed=lambda x: print(x)
+    )
     win = Gtk.Window()
     win.connect("destroy", Gtk.main_quit)
     win.add(settings)
