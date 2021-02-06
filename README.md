@@ -15,6 +15,9 @@ Inspired by [Polybar](https://github.com/polybar/polybar)'s script module.
 
 ## Installation
 
+Install [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html) for your platform
+
+Then run:
 ```bash
 mkdir -p ~/.local/share/budgie-desktop/plugins
 cd ~/.local/share/budgie-desktop/plugins
