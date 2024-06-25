@@ -1,10 +1,8 @@
-from appdirs import AppDirs
+from platformdirs import *
 from pathlib import Path
 import json
 
-_appdirs = AppDirs(appname="budgie_script", appauthor="wsck")
-
-_directory = Path(_appdirs.user_config_dir)
+_directory = Path(user_config_dir("budgie_script"))
 _filename = "budgie_script.json"
 _path = _directory / _filename
 
